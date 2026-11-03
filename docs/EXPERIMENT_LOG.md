@@ -109,3 +109,54 @@ Median R^2 of the linear surrogate against the ResNet logit (median mean-gradien
   5. R^2 and cosine thresholds are tentative; ridge alpha 0.001 was not tuned.
   6. "Gradient cosine at x0" falls toward 0 for MAGIC at sigma 2 because the linear fit averages over a
      huge region while the gradient at x0 is local, so it measures different things at large sigma.
+
+### 2026-11-03 — baseline explainers scored with fid+/fid- (README steps 14 to 17, 24)
+Run: `scripts/run_baselines.py --config configs/baselines.yaml` (config hash `62bcbd58`); about 25 s per dataset
+(under 2 minutes in total) on the laptop CPU. Full table: `runs/baselines/summary.md`; per-point data:
+`per_point.csv`; attributions: `attributions.npz`. Same 100 random test points per dataset as the local check
+(all 86 for Breast Cancer), seed-0 checkpoints, x' = 0.
+
+Methods: IG and SmoothGrad on the target (direct baselines), SmoothGrad x input, gradient x input, LIME-style
+linear surrogate at sigma 0.25 and 0.5, and a random ranking. Scores are against the target.
+
+Raw-logit means (fid+ higher is better, fid- lower is better):
+
+| dataset | IG fid+ / fid- | LIME-linear (sigma 0.5) fid+ / fid- | random fid+ / fid- | Spearman of LIME-linear vs IG |
+|---|---|---|---|---|
+| Breast Cancer | 3.95 / 0.38 | 3.83 / 0.44 | 1.90 / 1.85 | 0.90 |
+| Spambase | 3.70 / 0.14 | 3.63 / 0.16 | 1.82 / 1.76 | 0.91 |
+| **MAGIC** | 3.90 / 0.54 | 3.54 / 0.94 | 2.36 / 2.41 | 0.65 |
+| **Covertype** | 4.35 / 0.83 | 4.30 / 1.00 | 2.89 / 2.62 | 0.64 |
+
+- **Sanity checks passed:** IG completeness error is at most 0.0076 logits (mean at most 0.0007); every real
+  method is far better than random on both metrics; unit tests confirm the metrics prefer the true ranking on a
+  linear model with known weights.
+- **Near-linear controls (Breast Cancer, Spambase):** the LIME-style linear surrogate is nearly
+  indistinguishable from IG on the target (fid+ within about 0.1 logit, fid- within about 0.06; rank agreement
+  about 0.9). Nothing here for a nonlinear surrogate to improve, as expected.
+- **Nonlinear datasets (MAGIC, Covertype):** the linear surrogate's explanations are less faithful than IG on
+  the target, mainly on **fid-** (sufficiency): MAGIC 0.94 to 0.95 vs 0.54, Covertype 1.00 to 1.15 vs 0.83.
+  fid+ is about the same (differences are inside the noise at this sample size). Rank agreement with IG falls
+  to about 0.65. This is the gap a nonlinear surrogate is meant to close. **It is a gap relative to IG on the
+  target, not yet a result about the nonlinear surrogate.**
+- SmoothGrad (plain mean gradient) is the weakest real method, since it ignores the (x - x') scaling; its
+  `x input` version is close to IG.
+- **Caveats:** (1) 100 points, one checkpoint, no confidence intervals or significance tests yet, so small
+  differences should not be interpreted; (2) fid+/fid- use the same reference x' as IG, which may favor IG (D28);
+  (3) the normalized fid columns are unreliable (D25), so use raw values and medians; (4) the linear
+  baseline has not been cross-checked against the `lime` package; (5) SmoothGrad parameters are untuned.
+
+### 2026-11-03 — CORRECTION and full baseline analysis (report/BASELINE_REPORT.md)
+Ran the same baseline pipeline and local-fit check on ResNet seeds 1 and 2 (`configs/baselines_seed{1,2}.yaml`,
+`configs/local_linearity_check_seed{1,2}.yaml`) and a full analysis (`scripts/analyze_baselines.py`, ~85 s).
+- **Correction:** the entry above ("baseline explainers scored with fid+/fid-") concluded that on MAGIC and
+  Covertype the linear surrogate is less faithful than IG, mainly on fid-. That was seed 0 only. Across seeds the
+  fid- gap is MAGIC +0.41/-0.10/+0.03 and Covertype +0.18/-0.17/+0.07 (sigma 0.5); only MAGIC seed 0 is
+  significant. The claim is withdrawn (D29).
+- **Replicated:** the poor local linear fit on MAGIC and Covertype holds on all three seeds (D30).
+- **New findings:** (1) rank agreement between LIME-linear and IG after removing the |x| factor is 0.88/0.90 on
+  Breast Cancer/Spambase but 0.58/0.42 on MAGIC/Covertype; on MAGIC the linear sign agrees with IG on only 54% of
+  IG's top-5 features (chance 52%); (2) infidelity separates the methods more than fid+/fid- (MAGIC IG 11.1 vs
+  linear 43.6 to 49.6), seed 0 only; (3) the ordering IG >= linear is unchanged with an opposite-class-mean removal
+  baseline; (4) the randomization test passes only after removing the |x| factor (D31).
+- Full tables, figures and discussion: `report/BASELINE_REPORT.md`.

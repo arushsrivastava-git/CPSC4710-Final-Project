@@ -1,0 +1,19 @@
+# Baseline explainers on each target ResNet, scored with fid+/fid- against the target.
+run_name: baselines_seed2
+
+targets:                       # seed-0 checkpoint of each trained target
+  breast_cancer: target_breast_cancer_resnet
+  spambase: target_spambase_resnet
+  magic: target_magic_resnet
+  covtype_binary: target_covtype_binary_resnet
+
+checkpoint_seed: 2
+n_points: 100                  # same random test points as local_linearity_check (same rng_seed)
+rng_seed: 0
+ig_steps: 100                  # IG trapezoid intervals
+smoothgrad_n: 100
+smoothgrad_sigma: 0.25         # standardized units
+lime_sigmas: [0.25, 0.5]       # neighborhood scale for the LIME-style linear surrogate
+lime_n_fit: 5000
+ridge_alpha: 0.001
+# IG / fid reference point x' = zeros = the training mean in standardized space (all methods)

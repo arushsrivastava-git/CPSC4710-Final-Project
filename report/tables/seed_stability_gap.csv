@@ -1,0 +1,5 @@
+dataset,fid- gap (LIME-linear σ=0.5 minus IG) per seed,gap > 0 in every seed
+Breast Cancer,+0.06 / +0.04 / +0.11,True
+Spambase,+0.03 / +0.06 / +0.09,True
+MAGIC,+0.41 / -0.10 / +0.03,False
+Covertype,+0.18 / -0.17 / +0.07,False

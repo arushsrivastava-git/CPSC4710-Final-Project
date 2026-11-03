@@ -494,6 +494,10 @@ Work completed so far (plan steps 1 to 5, 7, 8 partially, 9, 10):
 | Hyperparameter search | | **skipped** (fixed architecture, see D9) |
 | Complexity check (local linear surrogate vs ResNet) | `scripts/local_linearity_check.py`, `runs/local_linearity_check/` | done: linear fits MAGIC and Covertype poorly (R^2 about 0.6), Breast Cancer and Spambase well (D20) |
 | Neighborhood sampler, teacher signals, linear surrogate | `src/neighborhoods.py`, `src/surrogates/linear.py` | done, tested |
+| IG, SmoothGrad, gradient x input, fid+/fid- metrics | `src/explainers/gradient.py`, `src/metrics/faithfulness.py` | done, tested (IG completeness verified) |
+| Baselines scored on all four datasets (3 ResNet seeds) | `scripts/run_baselines.py`, `runs/baselines*/` | done. **Corrected:** the linear surrogate fits MAGIC and Covertype poorly (replicated), but its fid+/fid- gap to IG is small and not stable across seeds; rank agreement with IG drops (see report) |
+| Baseline report (all proposal metrics and visualizations, plus extras) | `report/BASELINE_REPORT.md`, `report/figures/`, `report/tables/`, built by `scripts/analyze_baselines.py` and `scripts/build_report.py` | done |
+| Nonlinear surrogate (V0 to V2), Sobolev training | | **not started** |
 | EDA, TabM, MLP reference | | not done |
 
 Documentation to use when writing the report:

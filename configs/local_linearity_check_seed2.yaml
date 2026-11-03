@@ -1,0 +1,21 @@
+# Complexity check (README step 17): how well does a LIME-style linear surrogate fit each
+# target ResNet inside Gaussian neighborhoods of test points?
+run_name: local_linearity_check_seed2
+
+targets:                       # seed-0 checkpoint of each trained target
+  breast_cancer: target_breast_cancer_resnet
+  spambase: target_spambase_resnet
+  magic: target_magic_resnet
+  covtype_binary: target_covtype_binary_resnet
+
+checkpoint_seed: 2
+sigmas: [0.1, 0.25, 0.5, 1.0, 2.0]   # neighborhood scale in standardized units
+n_points: 100                  # test points per dataset (all of them if the test set is smaller)
+n_fit: 5000                    # neighborhood samples used to fit the linear surrogate
+n_eval: 5000                   # independent held-out neighborhood samples used to score it
+ridge_alpha: 0.001
+rng_seed: 0
+# Tentative "linear fits well" thresholds (README 6.1); NOT tuned. A point counts as
+# "linear fails" when R^2 < r2_threshold.
+r2_threshold: 0.9
+cosine_threshold: 0.8

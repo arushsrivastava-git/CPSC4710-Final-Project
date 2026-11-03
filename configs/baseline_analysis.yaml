@@ -1,0 +1,13 @@
+# Analysis of the baseline run (statistics, extra metrics, sanity checks, figures).
+baselines_run: baselines              # runs/<name>/ produced by scripts/run_baselines.py
+seed_runs: [baselines_seed1, baselines_seed2]   # same pipeline on the other two trained ResNet seeds
+local_check_run: local_linearity_check
+rng_seed: 0
+topk: [3, 5]                          # top-k overlap
+infidelity_masks: 256                 # random keep/remove masks per point (Bernoulli 0.5)
+sens_points: 30                       # test points used for max-sensitivity (it is the costly metric)
+sens_sigma: 0.1                       # std of input perturbations for sensitivity (standardized units)
+sens_draws: 10
+corr_threshold: 0.9                   # |r| in the training data to call two features near-duplicates
+embedding_sigma: 0.5                  # neighborhood scale for the disagreement maps
+embedding_n: 3000

@@ -1,0 +1,5 @@
+dataset,"IG completeness error, mean (logits)","IG completeness error, max (logits)",Spearman: IG of untrained model vs IG of trained model
+Breast Cancer,6.847652142291713e-05,0.0005356785779584,"0.35 [0.31, 0.38]"
+Covertype,0.00028772675505439014,0.0013005042959133,"0.26 [0.20, 0.31]"
+MAGIC,0.0007353126980287165,0.0076448020500343,"0.50 [0.45, 0.54]"
+Spambase,8.795901867013376e-05,0.0006846039002423,"0.35 [0.33, 0.37]"
