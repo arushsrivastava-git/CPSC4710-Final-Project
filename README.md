@@ -37,7 +37,7 @@ The deliverable is an empirical answer to the trade-off between **surrogate comp
 
 | Term | Meaning in this project |
 |---|---|
-| **Target model** (a.k.a. "white-box"/"larger" model) | The trained classifier we want to explain. Trained on the full dataset (MLP, Tabular ResNet, TabM). |
+| **Target model** (a.k.a. "white-box"/"larger" model) | The trained classifier we want to explain. Trained on the full dataset (Tabular ResNet primary; TabM and a small MLP as secondary/reference). |
 | **Surrogate** | A small model trained to imitate the target model **inside a neighborhood** of one test point. |
 | **Neighborhood** | A distribution of perturbed points around a test input `x0`. |
 | **Distillation** | Training the surrogate on the target's outputs over neighborhood samples. |
@@ -155,9 +155,15 @@ Both are from the UCI Machine Learning Repository and available through `sklearn
 
 Neural classifiers that are differentiable end to end, so that the "direct" baseline (IG on `f`) is well defined and Sobolev training has a gradient to match:
 
-- **MLP** (primary)
-- **Tabular ResNet**
-- **TabM**
+- **Tabular ResNet** (primary)
+- **TabM** (secondary; include only if it is smooth and differentiable w.r.t. the raw inputs, e.g. no non-differentiable feature-embedding step)
+- **MLP** (small reference target, see below)
+
+**Why Tabular ResNet is the primary target.** The whole premise of the project is simplifying explanations of *over-complex* models. If the target is simple (e.g. a small MLP that is nearly linear in a local neighborhood), a linear LIME-style surrogate already fits it well and a nonlinear surrogate has nothing to improve on, so the method would not matter. The target therefore has to be genuinely complex: Tabular ResNet's deeper residual structure with skip connections and normalization gives strongly nonlinear local behavior and feature interactions.
+
+**Complexity check (do this before any surrogate work).** For a sample of test points, fit the linear baseline and record its local R² / gradient cosine against the target. If the linear surrogate already fits almost perfectly, the target is not complex enough to motivate the project; increase depth/width of the ResNet or the neighborhood scale σ. The same check should show a visible gap between the linear surrogate and the target, which is the room the nonlinear surrogate is meant to fill.
+
+**Role of the plain MLP.** A small MLP target is kept only as a low-complexity reference: it lets us show that the nonlinear surrogate's advantage grows with target complexity (RQ3-style evidence), and it is a cheap target for debugging the pipeline. It is not the main result.
 
 The target outputs a **logit** (or probability for the positive class). Decide once which scalar is being explained and matched. Recommended: the **positive-class logit**, since probabilities saturate and make gradients vanish near confident predictions.
 
@@ -272,7 +278,7 @@ Evaluate on many test points (e.g. all test points on Breast Cancer, a few hundr
 
 | Factor | Levels |
 |---|---|
-| Target model | MLP, Tabular ResNet, TabM |
+| Target model | Tabular ResNet (primary), TabM, MLP (low-complexity reference) |
 | Neighborhood σ | 0.1, 0.25, 0.5, 1.0 |
 | Surrogate | LIME-style linear; MLP × {V0, V1, V2, (V3)} |
 | Surrogate size | depth {1, 2, 3} × width {32, 64, 128}; with/without weight decay |
@@ -280,7 +286,7 @@ Evaluate on many test points (e.g. all test points on Breast Cancer, a few hundr
 | Explainer | IG, SmoothGrad (× IG baseline choice) |
 | Seeds | ≥ 3 |
 
-This is too large to run fully crossed. Plan: run the **full pipeline on the primary target (MLP), σ = 0.5, one surrogate size** first; then ablate **one factor at a time** from that default; run the other targets on the default only. Record every run's config and metrics in a results table (CSV/Parquet) so the analysis is reproducible.
+This is too large to run fully crossed. Plan: run the **full pipeline on the primary target (Tabular ResNet), σ = 0.5, one surrogate size** first; then ablate **one factor at a time** from that default; run the other targets on the default only. Record every run's config and metrics in a results table (CSV/Parquet) so the analysis is reproducible.
 
 **Ablation questions** map to the RQs: V0 vs. V1 (RQ1), size sweeps (RQ3), dataset comparison (RQ4), correlated-feature analysis (RQ5), σ / baseline / `n` sweeps (RQ6).
 
@@ -299,7 +305,7 @@ Proposed structure (create as work proceeds):
 ├── data/                     # raw + processed (git-ignored; download script provided)
 ├── src/
 │   ├── data/                 # loading, splitting, scaling, EDA helpers
-│   ├── models/               # target models (MLP, TabResNet, TabM), surrogate MLP
+│   ├── models/               # target models (TabResNet, TabM, MLP), surrogate MLP
 │   ├── neighborhoods.py      # sampling around x0
 │   ├── surrogates/           # linear (LIME-style) and nonlinear training (V0–V3)
 │   ├── explainers/           # IG, SmoothGrad, wrappers for the baselines
@@ -336,7 +342,7 @@ Phases are ordered by dependency. Each step lists the **deliverable** and a **do
 
 ### Phase 2 — Target models
 
-7. **Implement target architectures**: MLP, Tabular ResNet, TabM, each exposing `forward(x) → logit` and fully differentiable w.r.t. `x`.
+7. **Implement target architectures**: Tabular ResNet (primary), TabM, and a small MLP reference, each exposing `forward(x) → logit` and fully differentiable w.r.t. `x`.
 8. **Train + tune** each on both datasets with a small validation-set search (width, depth, dropout, weight decay, lr), early stopping, ≥ 3 seeds. Save checkpoints and test accuracy / AUC.
    *Done when:* every target reaches sensible accuracy (Breast Cancer typically ≥ 95%, Spambase ≥ 93%) and the numbers are logged in a table.
 9. **Gradient sanity.** Verify `∇ₓ f` against finite differences on random inputs (a unit test).
@@ -358,6 +364,7 @@ Phases are ordered by dependency. Each step lists the **deliverable** and a **do
 16. **LIME-style linear surrogate.** Weighted ridge regression on the neighborhood (optionally sparse via K-LASSO feature selection); output weights as the attribution, plus its own R² for the gate. Cross-check qualitatively against the `lime` package on a handful of points.
 17. **Direct baseline wrapper**: IG/SmoothGrad on the target `f` itself.
     *Done when:* all three baseline explainers produce an attribution vector of shape `(d,)` for any `(f, x0)`, with tests.
+    *Complexity check (gate for the rest of the project):* using the linear baseline from step 16, measure local R² and gradient cosine against the Tabular ResNet on a sample of test points (§5.2). If the linear surrogate already fits nearly perfectly, make the target more complex or increase σ before continuing.
 
 ### Phase 5 — Nonlinear surrogate and Sobolev training
 
@@ -377,11 +384,11 @@ Phases are ordered by dependency. Each step lists the **deliverable** and a **do
 25. **Infidelity and max-sensitivity** (Yeh et al.), plus rank-agreement metrics (Spearman, Kendall, top-`k` overlap, sign agreement).
 26. **Sanity checks**: IG completeness for `f` and `g`; a randomized-model test; a seed-stability test.
 27. **Orchestrator** `evaluate.py`: for each test point → build neighborhood → fit LIME-style + each surrogate → gate on fidelity → explain with each method → score everything → append one row per `(test point, method)` to a results table with the full config hash.
-    *Done when:* a single end-to-end run on Breast Cancer / MLP target completes and writes a results file.
+    *Done when:* a single end-to-end run on Breast Cancer / Tabular ResNet target completes and writes a results file.
 
 ### Phase 7 — Experiments
 
-28. **Main run** on Breast Cancer, MLP target, default settings, all test points, ≥ 3 seeds.
+28. **Main run** on Breast Cancer, Tabular ResNet target, default settings, all test points, ≥ 3 seeds.
 29. **Spambase main run** on a sampled subset of test points (e.g. 200–500), same settings.
 30. **Ablations**, one factor at a time from the defaults: training variant (V0/V1/V2/V3), `λ`, surrogate depth/width/regularization, σ, `n`, IG baseline, explainer (IG vs. SmoothGrad), target architecture.
 31. **Correlated-feature study (RQ5).** Using the near-duplicate pairs from EDA, measure how each method splits attribution between correlated features and how stable that split is across seeds and σ.
@@ -434,7 +441,7 @@ These were left open in the proposal and need a group decision early:
 5. **IG baseline.** Training mean (default) vs. median vs. class-conditional.
 6. **Spambase preprocessing.** Whether to log-transform heavy-tailed features.
 7. **Non-gradient explainers** (e.g. KernelSHAP) as an extra comparison: in scope or not.
-8. **Which targets are mandatory** if time is short (MLP first; ResNet/TabM are extensions).
+8. **Which targets are mandatory** if time is short (Tabular ResNet is mandatory as the primary target; TabM and the MLP reference are extensions).
 
 ---
 
