@@ -1,0 +1,27 @@
+{
+  "train": {
+    "n": 13314,
+    "positive_rate": 0.6483400931350458
+  },
+  "val": {
+    "n": 2853,
+    "positive_rate": 0.6484402383456012
+  },
+  "test": {
+    "n": 2853,
+    "positive_rate": 0.6484402383456012
+  },
+  "n_features": 10,
+  "feature_names": [
+    "fLength",
+    "fWidth",
+    "fSize",
+    "fConc",
+    "fConc1",
+    "fAsym",
+    "fM3Long",
+    "fM3Trans",
+    "fAlpha",
+    "fDist"
+  ]
+}

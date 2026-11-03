@@ -1,0 +1,9 @@
+.DS_Store
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.venv/
+.pytest_cache/
+# raw datasets are re-obtainable (see docs/DATA.md); never commit them
+data/*
+!data/.gitkeep

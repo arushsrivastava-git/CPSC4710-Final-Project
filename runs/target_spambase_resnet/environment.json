@@ -1,0 +1,14 @@
+{
+  "timestamp_utc": "2026-11-03T20:17:28+00:00",
+  "python": "3.14.7",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "machine": "arm64",
+  "torch": "2.11.0",
+  "numpy": "2.4.4",
+  "sklearn": "1.8.0",
+  "git_commit": "69f89d8",
+  "git_dirty": true,
+  "config_hash": "2cef5482",
+  "device": "cpu",
+  "config_path": "configs/target_spambase_resnet.yaml"
+}

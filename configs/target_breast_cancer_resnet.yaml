@@ -1,0 +1,28 @@
+# Target model: Tabular ResNet on Breast Cancer Wisconsin (Diagnostic).
+# Every field here is recorded with the run (runs/<run_name>/config.yaml).
+run_name: target_breast_cancer_resnet
+
+data:
+  name: breast_cancer      # label 1 = malignant (positive class)
+  split_seed: 0            # fixed across all model seeds -> identical test points
+  val_frac: 0.15
+  test_frac: 0.15
+  log1p: false             # no log transform for Breast Cancer
+
+model:                     # Tabular ResNet (see src/models/tab_resnet.py)
+  d_main: 128
+  n_blocks: 4              # depth chosen for high complexity (project premise: complex target)
+  d_hidden_factor: 2.0
+  activation: gelu         # smooth activation -> informative input gradients
+  normalization: batchnorm
+  dropout_first: 0.1
+  dropout_second: 0.0
+
+training:
+  seeds: [0, 1, 2]
+  lr: 0.001
+  weight_decay: 0.0001
+  batch_size: 64
+  max_epochs: 300
+  patience: 30             # early stopping on validation loss
+  device: cpu              # cpu is as fast as MPS at this model/data size

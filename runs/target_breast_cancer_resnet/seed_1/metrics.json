@@ -1,0 +1,28 @@
+{
+  "metrics": {
+    "train": {
+      "accuracy": 0.9924433249370277,
+      "auc": 0.9998643221534788,
+      "log_loss": 0.023089683306996848
+    },
+    "val": {
+      "accuracy": 1.0,
+      "auc": 1.0,
+      "log_loss": 0.01578341409720516
+    },
+    "test": {
+      "accuracy": 0.9418604651162791,
+      "auc": 0.990162037037037,
+      "log_loss": 0.1248353128972837
+    }
+  },
+  "info": {
+    "seed": 1,
+    "n_params": 269057,
+    "best_epoch": 80,
+    "epochs_run": 111,
+    "best_val_loss": 0.01578342169523239,
+    "train_seconds": 1.37,
+    "device": "cpu"
+  }
+}

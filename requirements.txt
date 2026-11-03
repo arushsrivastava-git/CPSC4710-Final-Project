@@ -1,0 +1,10 @@
+# Core (versions the project was developed against; see docs/ENVIRONMENT.md)
+torch>=2.11
+numpy>=2.4
+pandas>=3.0
+scikit-learn>=1.8
+scipy>=1.17
+pyyaml
+tqdm
+matplotlib
+pytest

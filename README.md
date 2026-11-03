@@ -453,3 +453,46 @@ These were left open in the proposal and need a group decision early:
 4. Sundararajan, Taly, Yan (2017). *Axiomatic Attribution for Deep Networks* (Integrated Gradients). ICML.
 5. Yeh, Hsieh, Suggala, Inouye, Ravikumar (2019). *On the (In)fidelity and Sensitivity of Explanations.* NeurIPS.
 6. Smilkov, Thorat, Kim, Viégas, Wattenberg (2017). *SmoothGrad: removing noise by adding noise.*
+
+---
+
+## Implementation status and documentation
+
+Work completed so far (plan steps 1 to 5, 7, 8 partially, 9, 10):
+
+| Area | Where | Status |
+|---|---|---|
+| Environment, requirements, seeding, config hashing, run records | `requirements.txt`, `src/utils/repro.py`, `docs/ENVIRONMENT.md` | done |
+| Data loading, stratified splits, train-only scaling | `src/data/datasets.py`, `docs/DATA.md` | done (both datasets) |
+| Tabular ResNet target | `src/models/tab_resnet.py` | done |
+| Training + checkpoint storage | `src/training/train_target.py`, `scripts/train_target.py` | done |
+| Trained target, Breast Cancer | `runs/target_breast_cancer_resnet/` | done (3 seeds, test acc 94.2%, AUC 0.988) |
+| Trained target, Spambase | `runs/target_spambase_resnet/` | done (3 seeds, test acc 95.0%, AUC 0.982) |
+| Trained target, MAGIC | `runs/target_magic_resnet/` | done (3 seeds, test acc 87.6%, AUC 0.932) |
+| Trained target, binary Covertype | `runs/target_covtype_binary_resnet/` | done (3 seeds, test acc 85.5%, AUC 0.930) |
+| Logistic-regression reference | `scripts/reference_logreg.py`, `runs/reference_logreg/` | done: linear matches the ResNet on Breast Cancer and Spambase, but trails by about 9 to 10 points on MAGIC and Covertype (D15, D16) |
+| Hyperparameter search | | **skipped** (fixed architecture, see D9) |
+| EDA, TabM, MLP reference | | not done |
+
+Documentation to use when writing the report:
+
+- `docs/EXPERIMENT_LOG.md`: one row per run (auto-appended) plus hand-written notes.
+- `docs/DESIGN_DECISIONS.md`: every choice, its reason, and open items.
+- `docs/DATA.md`, `docs/ENVIRONMENT.md`: datasets, splits, software and hardware.
+- `runs/<run>/`: config, environment (versions, git commit, config hash), per-seed metrics and
+  loss curves, checkpoints, and a paste-ready `summary.md`.
+
+Reproduce the target model and run the tests:
+
+```bash
+.venv/bin/python scripts/train_target.py --config configs/target_breast_cancer_resnet.yaml
+.venv/bin/python -m pytest
+```
+
+Load a stored model (returns the model in eval mode and the checkpoint with scaler, feature
+names and split indices):
+
+```python
+from src.models.tab_resnet import load_checkpoint
+model, ckpt = load_checkpoint("runs/target_breast_cancer_resnet/seed_0/model.pt")
+```

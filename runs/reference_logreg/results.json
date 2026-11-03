@@ -1,0 +1,47 @@
+{
+  "results": {
+    "breast_cancer": {
+      "C": 0.1,
+      "log1p": false,
+      "test_accuracy": 0.9767441860465116,
+      "test_auc": 0.986111111111111,
+      "n_test": 86,
+      "max_samples": null
+    },
+    "spambase": {
+      "C": 0.01,
+      "log1p": true,
+      "test_accuracy": 0.9507959479015919,
+      "test_auc": 0.9784325424680612,
+      "n_test": 691,
+      "max_samples": null
+    },
+    "magic": {
+      "C": 0.01,
+      "log1p": false,
+      "test_accuracy": 0.784086926042762,
+      "test_auc": 0.840960362156773,
+      "n_test": 2853,
+      "max_samples": null
+    },
+    "covtype_binary": {
+      "C": 0.1,
+      "log1p": false,
+      "test_accuracy": 0.7603333333333333,
+      "test_auc": 0.8234011575133071,
+      "n_test": 3000,
+      "max_samples": 20000
+    }
+  },
+  "environment": {
+    "timestamp_utc": "2026-11-03T20:24:38+00:00",
+    "python": "3.14.7",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "torch": "2.11.0",
+    "numpy": "2.4.4",
+    "sklearn": "1.8.0",
+    "git_commit": "69f89d8",
+    "git_dirty": true
+  }
+}

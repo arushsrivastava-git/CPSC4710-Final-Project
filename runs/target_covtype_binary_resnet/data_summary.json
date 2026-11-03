@@ -1,0 +1,27 @@
+{
+  "train": {
+    "n": 14000,
+    "positive_rate": 0.4278571428571429
+  },
+  "val": {
+    "n": 3000,
+    "positive_rate": 0.42766666666666664
+  },
+  "test": {
+    "n": 3000,
+    "positive_rate": 0.428
+  },
+  "n_features": 10,
+  "feature_names": [
+    "Elevation",
+    "Aspect",
+    "Slope",
+    "Horizontal_Distance_To_Hydrology",
+    "Vertical_Distance_To_Hydrology",
+    "Horizontal_Distance_To_Roadways",
+    "Hillshade_9am",
+    "Hillshade_Noon",
+    "Hillshade_3pm",
+    "Horizontal_Distance_To_Fire_Points"
+  ]
+}
