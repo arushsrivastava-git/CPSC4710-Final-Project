@@ -29,7 +29,7 @@ This project tests the opposite design:
 
 > Replace the linear surrogate with a more expressive **nonlinear surrogate (an MLP)**, train it so it matches **both the model's outputs and its input gradients** (Sobolev training), and then run **gradient-based explainers** (Integrated Gradients, SmoothGrad) on the surrogate. Do those explanations track the original model's behavior better than (a) a LIME-style linear surrogate and (b) the same explainer applied directly to the original model?
 
-We study this on two tabular binary-classification datasets (Breast Cancer Wisconsin Diagnostic, Spambase) because their features are named and interpretable, which makes feature-level explanations easy to inspect.
+We study this on tabular binary-classification datasets because their features are named and interpretable, which makes feature-level explanations easy to inspect. The proposal named Breast Cancer Wisconsin (Diagnostic) and Spambase; we **added MAGIC Gamma Telescope and a binary version of Covertype** after finding the two proposal datasets are too linear to test the idea (see [§4.1](#41-change-from-the-proposal-added-datasets-and-why)).
 
 The deliverable is an empirical answer to the trade-off between **surrogate complexity, faithfulness, and interpretability**, including the conditions under which a nonlinear surrogate gives a real advantage and the conditions under which it does not.
 
@@ -59,7 +59,7 @@ Deep models are accurate but opaque. Explainability methods are only useful if t
 - **RQ1 (surrogate fidelity).** Does adding gradient matching (Sobolev loss) improve gradient fidelity relative to output-only distillation, and at what cost in output fidelity and compute?
 - **RQ2 (explanation faithfulness).** Do IG/SmoothGrad explanations computed on the surrogate score better on fid⁺ and fid⁻ than explanations from the baselines?
 - **RQ3 (complexity).** How do surrogate depth, width, and regularization affect fidelity and faithfulness? Is there a point of diminishing returns?
-- **RQ4 (dataset effects).** Do conclusions hold across a small, low-dimensional dataset (Breast Cancer, 569 × 30) and a larger, higher-dimensional one (Spambase, 4,601 × 57)?
+- **RQ4 (dataset effects).** Do conclusions hold across datasets that differ in size, dimensionality and how nonlinear the target is locally? Breast Cancer (569 × 30) and Spambase (4,601 × 57) are near-linear controls; MAGIC (19,020 × 10) and binary Covertype (20,000 × 10 after subsampling) are the strongly nonlinear cases (§4.1).
 - **RQ5 (correlated features).** Highly correlated features (e.g. mean radius vs. mean perimeter, r ≈ 0.998) can split attribution mass arbitrarily. Do the methods differ in how they distribute it?
 - **RQ6 (explainer/baseline sensitivity).** How sensitive are the results to the IG baseline, neighborhood scale, and gradient noise?
 
@@ -110,15 +110,35 @@ Following Yeh et al. (2019), explanation quality has more than one axis. We repo
 
 ## 4. Datasets
 
-Both are from the UCI Machine Learning Repository and available through `sklearn.datasets.load_breast_cancer` (Breast Cancer) and `fetch_openml`/UCI download (Spambase).
+All four are from the UCI Machine Learning Repository. Breast Cancer comes bundled with scikit-learn (`load_breast_cancer`); the other three are downloaded once into a git-ignored `data/` folder (see `docs/DATA.md` for sources, checksums and label conventions).
 
-| | Breast Cancer Wisconsin (Diagnostic) | Spambase |
-|---|---|---|
-| Samples | 569 | 4,601 |
-| Features | 30 (cell-nucleus measurements: radius, texture, perimeter, area, smoothness, compactness, concavity, symmetry, … ) | 57 (word freq., char freq., capital-run-length stats) |
-| Classes | benign 357 (62.7%) / malignant 212 (37.3%) | non-spam 60.6% / spam 39.4% |
-| Missing values | none | none |
-| Challenge | very small, strongly correlated features | higher dimension, heavy-tailed / sparse features |
+| | Breast Cancer Wisconsin (Diagnostic) | Spambase | MAGIC Gamma Telescope | Covertype (binary) |
+|---|---|---|---|---|
+| Role | proposal dataset (near-linear control) | proposal dataset (near-linear control) | **added** (nonlinear) | **added** (nonlinear) |
+| Samples | 569 | 4,601 | 19,020 | 495,141 (two largest classes), 20,000-row subsample used |
+| Features | 30 (cell-nucleus measurements) | 57 (word freq., char freq., capital-run-length stats) | 10 (shower-image parameters) | 10 continuous (the 44 one-hot columns are dropped) |
+| Classes | benign 62.7% / malignant 37.3% | non-spam 60.6% / spam 39.4% | hadron 35.2% / gamma 64.8% | Lodgepole Pine 57.2% / Spruce-Fir 42.8% |
+| Missing values | none | none | none | none |
+| Challenge | very small, strongly correlated features | higher dimension, heavy-tailed / sparse features | moderate size, clearly nonlinear | large, clearly nonlinear, subsampled |
+
+### 4.1 Change from the proposal: added datasets, and why
+
+**The proposal named only Breast Cancer and Spambase. We added MAGIC and binary Covertype. This is a deliberate deviation from the proposal, made on evidence, and it should be described as such in the final report.**
+
+*The problem.* The project's premise is that linear LIME-style surrogates are too simple for complicated models, so a nonlinear surrogate should explain them better. That only holds if the target model really is nonlinear near the points being explained. If it is nearly linear there, a linear surrogate already fits it and the method has nothing to improve.
+
+*What we measured* (details in `docs/EXPERIMENT_LOG.md`, data in `runs/`):
+
+1. **Global check.** A plain logistic regression matches or beats our Tabular ResNet on the proposal datasets (Breast Cancer 97.7% vs 94.2%; Spambase 95.1% vs 95.0%), but trails it by about 9 to 10 accuracy points on MAGIC (78.4% vs 87.6%) and Covertype (76.0% vs 85.5%).
+2. **Local check (the one that matters).** We fit a LIME-style linear surrogate to the ResNet inside Gaussian neighborhoods of test points. On Breast Cancer and Spambase its median R² against the ResNet's logit is 0.96 or higher up to σ = 0.5. On MAGIC and Covertype it drops to about 0.6 from σ = 0.25 up, the gradient cosine falls to about 0.5, and 90 to 100% of test points fail an R² < 0.9 threshold.
+
+*Conclusion.* On the two proposal datasets the premise largely does not hold at small to moderate neighborhood sizes, so they could not show the method's value even if it works. MAGIC and Covertype give a linear surrogate real room to fail, so they are the **main datasets**; Breast Cancer and Spambase are kept as **controls** where little improvement is expected. Keeping them also lets us test whether the nonlinear surrogate helps *less* when the target is nearly linear, which strengthens the conclusions (RQ4).
+
+*Choices made while adding them (all recorded as design decisions D16 to D19):* Covertype is reduced to its two largest classes, uses only the 10 continuous features (Gaussian perturbations of one-hot columns are off-manifold) and a 20,000-row stratified subsample for speed; the Higgs dataset was considered and skipped (about 2.6 GB).
+
+*Limits of this evidence* (not hidden): one trained ResNet seed in the local check, an untuned ResNet, tentative thresholds (R² 0.9, cosine 0.8), and σ values above about 0.5 that leave the data distribution. A teammate or reviewer may reasonably prefer a different nonlinear dataset or a more complex target; the pipeline accepts new datasets by adding a loader and a config.
+
+*Status:* this change has **not yet been agreed with the other project members (Anay Seth, Lucas Papamitsakis)**; it is flagged as needing their sign-off (decision D16).
 
 **Preprocessing.**
 
@@ -344,7 +364,7 @@ Phases are ordered by dependency. Each step lists the **deliverable** and a **do
 
 7. **Implement target architectures**: Tabular ResNet (primary), TabM, and a small MLP reference, each exposing `forward(x) → logit` and fully differentiable w.r.t. `x`.
 8. **Train + tune** each on both datasets with a small validation-set search (width, depth, dropout, weight decay, lr), early stopping, ≥ 3 seeds. Save checkpoints and test accuracy / AUC.
-   *Done when:* every target reaches sensible accuracy (Breast Cancer typically ≥ 95%, Spambase ≥ 93%) and the numbers are logged in a table.
+   *Done when:* every target reaches sensible accuracy (guide: it should beat a logistic-regression reference on the nonlinear datasets; see `docs/EXPERIMENT_LOG.md`) and the numbers are logged in a table.
 9. **Gradient sanity.** Verify `∇ₓ f` against finite differences on random inputs (a unit test).
    *Done when:* relative error ≲ 1e-3 in float64.
 10. **Choose the explained scalar** (positive-class logit recommended) and record it in the config.
@@ -388,8 +408,8 @@ Phases are ordered by dependency. Each step lists the **deliverable** and a **do
 
 ### Phase 7 — Experiments
 
-28. **Main run** on Breast Cancer, Tabular ResNet target, default settings, all test points, ≥ 3 seeds.
-29. **Spambase main run** on a sampled subset of test points (e.g. 200–500), same settings.
+28. **Main runs** on MAGIC and binary Covertype (the nonlinear datasets, §4.1), Tabular ResNet target, default settings, a few hundred sampled test points each, ≥ 3 seeds.
+29. **Control runs** on Breast Cancer (all test points) and Spambase (sampled subset), same settings, to check the method does not help much when the target is nearly linear.
 30. **Ablations**, one factor at a time from the defaults: training variant (V0/V1/V2/V3), `λ`, surrogate depth/width/regularization, σ, `n`, IG baseline, explainer (IG vs. SmoothGrad), target architecture.
 31. **Correlated-feature study (RQ5).** Using the near-duplicate pairs from EDA, measure how each method splits attribution between correlated features and how stable that split is across seeds and σ.
 32. **Failure analysis.** Inspect points where the surrogate fails the gate or loses to the baselines; use the embedding plots (§6.7) to see where the neighborhood disagrees.
@@ -472,6 +492,8 @@ Work completed so far (plan steps 1 to 5, 7, 8 partially, 9, 10):
 | Trained target, binary Covertype | `runs/target_covtype_binary_resnet/` | done (3 seeds, test acc 85.5%, AUC 0.930) |
 | Logistic-regression reference | `scripts/reference_logreg.py`, `runs/reference_logreg/` | done: linear matches the ResNet on Breast Cancer and Spambase, but trails by about 9 to 10 points on MAGIC and Covertype (D15, D16) |
 | Hyperparameter search | | **skipped** (fixed architecture, see D9) |
+| Complexity check (local linear surrogate vs ResNet) | `scripts/local_linearity_check.py`, `runs/local_linearity_check/` | done: linear fits MAGIC and Covertype poorly (R^2 about 0.6), Breast Cancer and Spambase well (D20) |
+| Neighborhood sampler, teacher signals, linear surrogate | `src/neighborhoods.py`, `src/surrogates/linear.py` | done, tested |
 | EDA, TabM, MLP reference | | not done |
 
 Documentation to use when writing the report:

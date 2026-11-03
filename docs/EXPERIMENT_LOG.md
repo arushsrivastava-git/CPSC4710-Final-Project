@@ -71,3 +71,41 @@ is the same logistic regression (`scripts/reference_logreg.py`, now covering fou
   or shrink with tuning; (4) Covertype uses only continuous features and a 20k subsample (D17, D18).
 - Commands: `scripts/train_target.py --config configs/target_magic_resnet.yaml` (hash `010f9a86`) and
   `configs/target_covtype_binary_resnet.yaml` (hash `a2ea09d6`).
+
+### 2026-11-03 — local linearity check (README step 17)
+Run: `scripts/local_linearity_check.py --config configs/local_linearity_check.yaml` (config hash `82315860`).
+Full table: `runs/local_linearity_check/summary.md`; per-point data: `per_point.csv`; figure: `local_linearity.png`.
+Setup: seed-0 checkpoint of each target; per test point and sigma, a linear (ridge) surrogate is fit to the
+ResNet's logit on 5,000 Gaussian neighborhood samples and scored on 5,000 independent ones. Test points:
+100 random per dataset (all 86 for Breast Cancer). Time: about 20 to 40 s per dataset.
+
+Median R^2 of the linear surrogate against the ResNet logit (median mean-gradient cosine in brackets):
+
+| dataset | sigma 0.1 | 0.25 | 0.5 | 1.0 | 2.0 |
+|---|---|---|---|---|---|
+| Breast Cancer | 0.990 (0.999) | 0.990 (0.996) | 0.959 (0.986) | 0.907 (0.961) | 0.909 (0.934) |
+| Spambase | 0.989 (0.999) | 0.988 (0.995) | 0.956 (0.983) | 0.916 (0.953) | 0.890 (0.916) |
+| **MAGIC** | 0.837 (0.870) | **0.608 (0.587)** | **0.600 (0.486)** | **0.620 (0.488)** | **0.685 (0.530)** |
+| **Covertype** | 0.887 (0.908) | **0.684 (0.673)** | **0.586 (0.526)** | **0.587 (0.506)** | **0.591 (0.547)** |
+
+- **Result:** the ResNet is locally close to linear on Breast Cancer and Spambase (the linear surrogate
+  reaches R^2 above 0.95 up to sigma 0.5, and 0% of test points fall below R^2 0.9 except 12% for Breast
+  Cancer at sigma 0.5), but strongly nonlinear on MAGIC and Covertype. For MAGIC and Covertype at
+  sigma >= 0.5, the linear surrogate explains only about 60% of the logit variance, its gradient points
+  in a very different direction from the ResNet's (cosine about 0.5), and 90 to 100% of test points fail the
+  R^2 < 0.9 threshold. Class agreement drops to about 0.77 to 0.85 there.
+- **Interpretation for the project:** MAGIC and Covertype give a linear LIME-style surrogate real room to
+  fail, which is what a nonlinear surrogate is meant to fix. Breast Cancer and Spambase are useful as
+  controls where the new method should not be expected to help much.
+- **Caveats to state in the report:**
+  1. Seed-0 checkpoint only; other seeds and untuned models could differ.
+  2. sigma is in standardized units, and radius grows as sigma*sqrt(d): sigma=1 is a much bigger
+     neighborhood for Spambase (d=57) than for MAGIC (d=10), so compare datasets at equal sigma with care.
+  3. Large sigma (1 to 2) leaves the data distribution, so those neighborhoods are off-manifold and the ResNet
+     is evaluated where it was never trained. The more trustworthy range is sigma 0.1 to 0.5.
+  4. On MAGIC at sigma 0.1, 57% of points already fail R^2 < 0.9 with a wide IQR (0.57 to 0.96), so some of
+     the ResNet's nonlinearity is very local. This could partly reflect a rough (non-smooth) learned function;
+     not investigated. If the ResNet is rough, Sobolev matching may be harder.
+  5. R^2 and cosine thresholds are tentative; ridge alpha 0.001 was not tuned.
+  6. "Gradient cosine at x0" falls toward 0 for MAGIC at sigma 2 because the linear fit averages over a
+     huge region while the gradient at x0 is local, so it measures different things at large sigma.
