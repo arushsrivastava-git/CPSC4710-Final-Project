@@ -1,6 +1,9 @@
 # Can a Nonlinear Surrogate Model Provide More Faithful Explanations of a White-Box Model?
 
-CPSC 4710 course project — Arush Srivastava, Anay Seth, Lucas Papamitsakis (Yale University)
+CPSC 4710 course project — 
+Arush Srivastava (Yale University) 
+Anay Seth (Yale University)
+Lucas Papamitsakis (Yale University)
 
 ---
 
